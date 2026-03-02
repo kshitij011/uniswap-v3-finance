@@ -10,12 +10,16 @@ import "./lib/SafeCast.sol";
 
 contract CLAMM {
     using SafeCast for int256;
+    using Tick for mapping(int24 => Tick.Info);
+    using Position for mapping(bytes32 => Position.Info);
+    using Position for Position.Info;
+
 
     address immutable token0;
     address immutable token1;
     uint24 immutable fee;
     int24 immutable tickSpacing;
-    int128 immutable maxLiquidityPerTick;
+    uint128 immutable maxLiquidityPerTick;
 
     // 32-bytes solt
     // Note: Price oracles and fee protocol is ignored in this tutorial.
@@ -47,6 +51,7 @@ contract CLAMM {
 
     // position has to be state variable as it is returned from storage.
     mapping(bytes32 => Position.Info) public positions;
+    mapping(int24 => Tick.Info) public ticks;
 
     modifier lock() {
         require(slot0.unlocked, "locked");
@@ -71,7 +76,7 @@ contract CLAMM {
         tickSpacing = _tickSpacing;
         fee = _fee;
 
-        maxLiquidityPerTick = int128(Tick.tickSpacingToMaxLiquidityPerTick(_tickSpacing));
+        maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(_tickSpacing);
     }
 
     function initialize(uint160 sqrtPriceX96) external {
@@ -91,7 +96,77 @@ contract CLAMM {
         int256 liquidityDelta;
     }
 
-    function _modifyPosition(ModifyPositionParams memory params) private view returns (Position.Info storage position, int256 amount0, int256 amount1) {
+    function checkTicks(int24 tickLower, int24 tickUpper) private pure{
+        require(tickLower < tickUpper, 'TLU');
+        require(tickLower >= TickMath.MIN_TICK, 'TLM');
+        require(tickUpper <= TickMath.MAX_TICK, 'TUM');
+    }
+
+    function _updatePosition(
+        address owner,
+        int24 tickLower,
+        int24 tickUpper,
+        int128 liquidityDelta,
+        int24 tick
+    ) private returns (Position.Info storage position) {
+        position = positions.get(owner, tickLower, tickUpper);
+
+        // uint256 _feeGrowthGlobal0x128 = feeGrowthGlobal0X128;
+        uint256 _feeGrowthGlobal0x128 = 0;  // for now
+        uint256 _feeGrowthGlobal1x128 = 0;  // for now
+
+        bool flippedLower;
+        bool flippedUpper;
+
+        if(liquidityDelta != 0) {
+            flippedLower = ticks.update(
+                tickLower,
+                tick,
+                liquidityDelta,
+                _feeGrowthGlobal0x128,
+                _feeGrowthGlobal1x128,
+                false,
+                maxLiquidityPerTick
+            );
+
+            flippedUpper = ticks.update(
+                tickUpper,
+                tick,
+                liquidityDelta,
+                _feeGrowthGlobal0x128,
+                _feeGrowthGlobal1x128,
+                true,
+                maxLiquidityPerTick
+            );
+        }
+
+        position.update(liquidityDelta, 0, 0);
+
+        if(liquidityDelta < 0) {
+            if(flippedLower) {
+                ticks.clear(tickLower);
+            }
+            if(flippedUpper) {
+                ticks.clear(tickUpper);
+            }
+        }
+
+    }
+
+    function _modifyPosition(ModifyPositionParams memory params) private returns (Position.Info storage position, int256 amount0, int256 amount1) {
+        checkTicks(params.tickLower, params.tickUpper);
+
+        // load into memory to save gas (reading from storage slots consume more gas)
+        Slot0 memory _slot0 = slot0;
+
+        position = _updatePosition(
+            params.owner,
+            params.tickLower,
+            params.tickUpper,
+            int128(params.liquidityDelta),
+            _slot0.tick 
+        );
+
         return (positions[bytes32(0)],0,0);
     }
 
@@ -103,7 +178,7 @@ contract CLAMM {
         uint128 amount
     ) external lock returns(uint amount0, uint amount1) {
         require(amount > 0, "amount is 0!");
-        (, int256 amount0Int, int256 amount1Int) =
+        (, int256 amount0Int, int256 amount1Int) = 
         _modifyPosition(
             ModifyPositionParams({
                 owner: recipient,

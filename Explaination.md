@@ -77,3 +77,9 @@ sqrtPriceX96 = sqrt(P) * (2 ** 96)
 
 **mint()**:
 When we add liquidity to the contract, mint() function is called
+
+**liquidityDelta**: Represents change in amount of liquidity (positive if liquidity is added, negative if removed)
+
+**\_modify position()**: checks the tick values, loads slot0.
+
+**\_updatePosition**: It updates the position , if liquidity is added, position is changed accordingly, same when it is removed.
