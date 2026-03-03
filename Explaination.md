@@ -81,5 +81,7 @@ When we add liquidity to the contract, mint() function is called
 **liquidityDelta**: Represents change in amount of liquidity (positive if liquidity is added, negative if removed)
 
 **\_modify position()**: checks the tick values, loads slot0.
+updates the position which determines where the price is and tick values.
+calculate teh amount of token0 and token1 that is needed to add liquidity or amount that needs to go out when liquidity is removed.
 
 **\_updatePosition**: It updates the position , if liquidity is added, position is changed accordingly, same when it is removed.

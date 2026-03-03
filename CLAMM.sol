@@ -7,6 +7,7 @@ import "./interfaces/IERC20.sol";
 import "./lib/Tick.sol";
 import "./lib/Position.sol";
 import "./lib/SafeCast.sol";
+import "./lib/SqrtPriceMath.sol";
 
 contract CLAMM {
     using SafeCast for int256;
@@ -48,6 +49,7 @@ contract CLAMM {
     }
 
     Slot0 public slot0;
+    uint128 public liquidity;
 
     // position has to be state variable as it is returned from storage.
     mapping(bytes32 => Position.Info) public positions;
@@ -93,7 +95,7 @@ contract CLAMM {
         address owner;
         int24 tickLower;
         int24 tickUpper;
-        int256 liquidityDelta;
+        int128 liquidityDelta;
     }
 
     function checkTicks(int24 tickLower, int24 tickUpper) private pure{
@@ -163,11 +165,49 @@ contract CLAMM {
             params.owner,
             params.tickLower,
             params.tickUpper,
-            int128(params.liquidityDelta),
-            _slot0.tick 
+            params.liquidityDelta,
+            _slot0.tick
         );
 
-        return (positions[bytes32(0)],0,0);
+        if(params.liquidityDelta != 0) {
+
+            // calculate liquidity when current price is less than lower price range
+            if(_slot0.tick < params.tickLower) {
+                amount0 = SqrtPriceMath.getAmount0Delta(
+                    TickMath.getSqrtRatioAtTick(params.tickLower),
+                    TickMath.getSqrtRatioAtTick(params.tickUpper),
+                    params.liquidityDelta
+                );
+
+                // when the current price is between two price ranges
+            } else if (_slot0.tick < params.tickUpper) {
+                amount0 = SqrtPriceMath.getAmount0Delta(
+                    _slot0.sqrtPriceX96,
+                    TickMath.getSqrtRatioAtTick(params.tickUpper),
+                    params.liquidityDelta
+                );
+
+                amount1 = SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtRatioAtTick(params.tickLower),
+                    _slot0.sqrtPriceX96,
+                    params.liquidityDelta
+                );
+
+                // Update current liquidity
+                liquidity = params.liquidityDelta < 0
+                ? liquidity - uint128(-params.liquidityDelta)
+                : liquidity + uint128(params.liquidityDelta);
+
+                // calculate liquidity when current price is less than lower price range
+            } else {
+                amount1 = SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtRatioAtTick(params.tickLower),
+                    TickMath.getSqrtRatioAtTick(params.tickUpper),
+                    params.liquidityDelta
+                );
+            }
+        }
+
     }
 
     // mint liquidity tokens to the recipient based on the amount aupplied.
@@ -178,7 +218,7 @@ contract CLAMM {
         uint128 amount
     ) external lock returns(uint amount0, uint amount1) {
         require(amount > 0, "amount is 0!");
-        (, int256 amount0Int, int256 amount1Int) = 
+        (, int256 amount0Int, int256 amount1Int) =
         _modifyPosition(
             ModifyPositionParams({
                 owner: recipient,
