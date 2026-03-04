@@ -85,3 +85,9 @@ updates the position which determines where the price is and tick values.
 calculate teh amount of token0 and token1 that is needed to add liquidity or amount that needs to go out when liquidity is removed.
 
 **\_updatePosition**: It updates the position , if liquidity is added, position is changed accordingly, same when it is removed.
+
+**burn()**:
+takes input tickLower, tickUpper and amount of liquidity to burn and returns the amount of tokens to be released after the token is burned.
+
+**collect()**:
+collect is called to actually transfer the tokens when liquidity is removed
