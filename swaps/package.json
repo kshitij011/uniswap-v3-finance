@@ -2,5 +2,9 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.2",
     "hardhat": "^2.28.6"
+  },
+  "dependencies": {
+    "@uniswap/v3-periphery": "^1.4.4",
+    "dotenv": "^17.3.1"
   }
 }

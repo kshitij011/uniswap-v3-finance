@@ -60,7 +60,7 @@ contract SingleHopSwap {
         amountOut = swapRouter.exactInputSingle(params);
     }
 
-    /// @notice swapExactOutputSingle swaps a minimum possible amount of DAI for a fixed amount of WETH.
+    /// @notice swapExactOutputSingle swaps a minimum possible amount of DAI for a fixed amount of WETH. (sells minimum amount of token in to get back the amountOut)
     /// @dev The calling address must approve this contract to spend its DAI for this function to succeed. As the amount of input DAI is variable,
     /// the calling address will need to approve for a slightly higher amount, anticipating some variance.
     /// @param amountOut The exact amount of WETH9 to receive from the swap.
@@ -68,16 +68,15 @@ contract SingleHopSwap {
     /// @return amountIn The amount of DAI actually spent in the swap.
     function swapExactOutputSingle(uint256 amountOut, uint256 amountInMaximum) external returns (uint256 amountIn) {
         // Transfer the specified amount of DAI to this contract.
-        TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), amountInMaximum);
+        TransferHelper.safeTransferFrom(WETH9, msg.sender, address(this), amountInMaximum);
 
         // Approve the router to spend the specified `amountInMaximum` of DAI.
         // In production, you should choose the maximum amount to spend based on oracles or other data sources to achieve a better swap.
-        TransferHelper.safeApprove(DAI, address(swapRouter), amountInMaximum);
-
+        TransferHelper.safeApprove(WETH9, address(swapRouter), amountInMaximum);
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
-                tokenIn: DAI,
-                tokenOut: WETH9,
+                tokenIn: WETH9,
+                tokenOut: DAI,
                 fee: poolFee,
                 recipient: msg.sender,
                 deadline: block.timestamp,
@@ -92,8 +91,8 @@ contract SingleHopSwap {
         // For exact output swaps, the amountInMaximum may not have all been spent.
         // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the msg.sender and approve the swapRouter to spend 0.
         if (amountIn < amountInMaximum) {
-            TransferHelper.safeApprove(DAI, address(swapRouter), 0);
-            TransferHelper.safeTransfer(DAI, msg.sender, amountInMaximum - amountIn);
+            TransferHelper.safeApprove(WETH9, address(swapRouter), 0);
+            TransferHelper.safeTransfer(WETH9, msg.sender, amountInMaximum - amountIn);
         }
     }
 }
