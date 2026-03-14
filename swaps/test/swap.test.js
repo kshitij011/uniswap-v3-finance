@@ -7,7 +7,6 @@ const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
 describe("Swap examples", () => {
     let SwapContract;
-    let provider;
     let accounts;
 
     let dai;
@@ -17,8 +16,7 @@ describe("Swap examples", () => {
     beforeEach(async () => {
         let swap = await ethers.getContractFactory("SingleHopSwap");
         SwapContract = await swap.deploy();
-        // await SwapContract.deployed();
-        // provider = ethers.BrowserProvider();
+        await SwapContract.waitForDeployment();
         accounts = await ethers.getSigners();
 
         dai = await ethers.getContractAt(
@@ -37,26 +35,26 @@ describe("Swap examples", () => {
         return balance;
     }
 
-    // it("should swapExactInputSingle", async function () {
-    //     const amountIn = 10n ** 18n; // 1 ETH
-    //     await weth9.connect(accounts[0]).deposit({ value: amountIn });
-    //     await weth9
-    //         .connect(accounts[0])
-    //         .approve(await SwapContract.target, amountIn);
+    it("should swapExactInputSingle", async function () {
+        const amountIn = 10n ** 18n; // 1 ETH
+        await weth9.connect(accounts[0]).deposit({ value: amountIn });
+        await weth9
+            .connect(accounts[0])
+            .approve(await SwapContract.target, amountIn);
 
-    //     console.log(
-    //         "WETH9 balance before: ",
-    //         await getBalance(accounts[0], weth9),
-    //     );
-    //     console.log("DAI balance before: ", await getBalance(accounts[0], dai));
-    //     await SwapContract.swapExactInputSingle(amountIn);
+        console.log(
+            "WETH9 balance before: ",
+            await getBalance(accounts[0], weth9),
+        );
+        console.log("DAI balance before: ", await getBalance(accounts[0], dai));
+        await SwapContract.swapExactInputSingle(amountIn);
 
-    //     console.log(
-    //         "WETH9 balance after: ",
-    //         await getBalance(accounts[0], weth9),
-    //     );
-    //     console.log("DAI balance after: ", await getBalance(accounts[0], dai));
-    // });
+        console.log(
+            "WETH9 balance after: ",
+            await getBalance(accounts[0], weth9),
+        );
+        console.log("DAI balance after: ", await getBalance(accounts[0], dai));
+    });
 
     it("should swapExactOutputSingle", async function () {
         const wethAmoutInMax = 10n ** 18n;
@@ -73,6 +71,53 @@ describe("Swap examples", () => {
         );
         console.log("DAI balance before: ", await getBalance(accounts[0], dai));
         await SwapContract.swapExactOutputSingle(daiAmountOut, wethAmoutInMax);
+
+        console.log(
+            "WETH9 balance after: ",
+            await getBalance(accounts[0], weth9),
+        );
+        console.log("DAI balance after: ", await getBalance(accounts[0], dai));
+    });
+
+    it("should swapExactInputMultihop", async function () {
+        const amountIn = 10n ** 18n; // 1 ETH
+        await weth9.connect(accounts[0]).deposit({ value: amountIn });
+        await weth9
+            .connect(accounts[0])
+            .approve(await SwapContract.target, amountIn);
+
+        console.log(
+            "WETH9 balance before: ",
+            await getBalance(accounts[0], weth9),
+        );
+        console.log("DAI balance before: ", await getBalance(accounts[0], dai));
+        await SwapContract.swapExactInputMultihop(amountIn);
+
+        console.log(
+            "WETH9 balance after: ",
+            await getBalance(accounts[0], weth9),
+        );
+        console.log("DAI balance after: ", await getBalance(accounts[0], dai));
+    });
+
+    it.only("should swapExactOutputMultihop", async function () {
+        const wethAmoutInMax = 10n ** 18n;
+        const daiAmountOut = 100n * 10n ** 18n;
+
+        await weth9.connect(accounts[0]).deposit({ value: wethAmoutInMax });
+        await weth9
+            .connect(accounts[0])
+            .approve(await SwapContract.target, wethAmoutInMax);
+
+        console.log(
+            "\nWETH9 balance before: ",
+            await getBalance(accounts[0], weth9),
+        );
+        console.log("DAI balance before: ", await getBalance(accounts[0], dai));
+        await SwapContract.swapExactOutputMultihop(
+            daiAmountOut,
+            wethAmoutInMax,
+        );
 
         console.log(
             "WETH9 balance after: ",

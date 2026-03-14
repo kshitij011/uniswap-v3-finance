@@ -8,7 +8,10 @@ module.exports = {
         hardhat: {
             forking: {
                 url: process.env.ALCHEMY_URL,
+                blockNumber: 19000000,
             },
+            gasPrice: "auto",
+            initialBaseFeePerGas: 0,
         },
     },
 };
