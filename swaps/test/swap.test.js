@@ -14,7 +14,7 @@ describe("Swap examples", () => {
     let usdc;
 
     beforeEach(async () => {
-        let swap = await ethers.getContractFactory("SingleHopSwap");
+        let swap = await ethers.getContractFactory("V3TokenSwaps");
         SwapContract = await swap.deploy();
         await SwapContract.waitForDeployment();
         accounts = await ethers.getSigners();
@@ -100,7 +100,7 @@ describe("Swap examples", () => {
         console.log("DAI balance after: ", await getBalance(accounts[0], dai));
     });
 
-    it.only("should swapExactOutputMultihop", async function () {
+    it("should swapExactOutputMultihop", async function () {
         const wethAmoutInMax = 10n ** 18n;
         const daiAmountOut = 100n * 10n ** 18n;
 

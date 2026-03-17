@@ -5,7 +5,7 @@ pragma abicoder v2;
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 
-contract SingleHopSwap {
+contract V3TokenSwaps {
 
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);   // swap router
 
@@ -58,11 +58,6 @@ contract SingleHopSwap {
             TransferHelper.safeTransfer(WETH9, msg.sender, amountInMaximum - amountIn);
         }
     }
-
-    // Multihop: Insted of swapping from token A to token B, we can swap from token A to token C through token B.
-    // This is called a multihop swap and can be done with `exactInput` and `exactOutput` in the swap router.
-    // Purpose of multihopSwap: In some cases, there may not be a direct pool between the token you want to swap from and the token you want to swap to, or the direct pool may not have enough liquidity.
-    // In these cases, you can use a multihop swap to route through an intermediate token that has pools with both the input and output tokens. This can help you achieve better prices and access more liquidity.
 
     // swap WETH9 -> USDC -> DAI
     function swapExactInputMultihop(uint256 amountIn) external returns (uint256 amountOut) {
